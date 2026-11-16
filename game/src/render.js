@@ -37,6 +37,11 @@ function glowCircle(ctx, x, y, r, color, alpha) {
   ctx.globalAlpha = 1;
 }
 
+// Scores and bests are always shown with thousands separators.
+function fmtScore(n) {
+  return Math.floor(n).toLocaleString('en-US');
+}
+
 export function drawBackground(ctx, state) {
   const g = ctx.createLinearGradient(0, 0, 0, VIEW_H);
   g.addColorStop(0, PALETTE.skyTop);
@@ -362,7 +367,7 @@ function drawHud(ctx, state) {
   ctx.textAlign = 'center';
   ctx.fillStyle = PALETTE.text;
   ctx.font = `bold 20px ${FONT}`;
-  ctx.fillText(`SCORE ${state.score.toLocaleString('en-US')}`, 480, 30);
+  ctx.fillText(`SCORE ${fmtScore(state.score)}`, 480, 30);
   if (state.combo > 1) {
     ctx.fillStyle = '#ffd166';
     ctx.font = `bold 14px ${FONT}`;
@@ -400,7 +405,7 @@ function drawHud(ctx, state) {
   ctx.textAlign = 'left';
   ctx.fillStyle = 'rgba(244,241,255,0.55)';
   ctx.font = `13px ${FONT}`;
-  ctx.fillText(`BEST ${Math.max(state.best, state.score).toLocaleString('en-US')}`, 16, 528);
+  ctx.fillText(`BEST ${fmtScore(Math.max(state.best, state.score))}`, 16, 528);
 
   // Controls hint, bottom-right, fades after the first night.
   if (state.night === 1 && state.waveIndex === 0) {
@@ -467,7 +472,7 @@ function drawTitle(ctx, state) {
   if (state.best > 0) {
     ctx.fillStyle = '#ffd166';
     ctx.font = `bold 18px ${FONT}`;
-    ctx.fillText(`BEST SCORE  ${state.best.toLocaleString('en-US')}`, 480, 396);
+    ctx.fillText(`BEST SCORE  ${fmtScore(state.best)}`, 480, 396);
   }
   const pulse = 0.6 + 0.4 * Math.sin(state.time * 3);
   ctx.globalAlpha = pulse;
@@ -511,7 +516,7 @@ function drawEndScreen(ctx, state, won) {
   panel(ctx, 300, 200, 360, 176);
   ctx.font = `bold 22px ${FONT}`;
   ctx.fillStyle = '#ffd166';
-  ctx.fillText(`SCORE  ${s.score.toLocaleString('en-US')}`, 480, 238);
+  ctx.fillText(`SCORE  ${fmtScore(s.score)}`, 480, 238);
   ctx.font = `17px ${FONT}`;
   ctx.fillStyle = PALETTE.text;
   ctx.fillText(`Wisps banished  ${s.kills}`, 480, 272);
@@ -520,7 +525,7 @@ function drawEndScreen(ctx, state, won) {
   const secs = Math.floor(s.time % 60);
   ctx.fillText(`Time  ${mins}:${String(secs).padStart(2, '0')}`, 480, 324);
   ctx.fillStyle = s.score >= s.best && s.score > 0 ? '#7ef0d4' : PALETTE.dimText;
-  ctx.fillText(s.score >= s.best && s.score > 0 ? '★ NEW BEST SCORE ★' : `Best  ${s.best.toLocaleString('en-US')}`, 480, 352);
+  ctx.fillText(s.score >= s.best && s.score > 0 ? '★ NEW BEST SCORE ★' : `Best  ${fmtScore(s.best)}`, 480, 352);
 
   const pulse = 0.6 + 0.4 * Math.sin(state.time * 3);
   ctx.globalAlpha = pulse;
