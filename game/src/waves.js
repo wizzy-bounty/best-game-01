@@ -40,6 +40,7 @@ export function updateWaves(state, dt) {
       state.waveTimer = 1.6;
       state.banner = { text: `WAVE ${state.waveIndex + 1} OF ${WAVES_PER_NIGHT}`, sub: '', timer: 1.6 };
       state.score += 100;
+      floatText(state, 480, 200, 'WAVE CLEAR +100', '#7ef0d4', 20);
       state.sfx.waveClear();
     } else {
       clearNight(state);

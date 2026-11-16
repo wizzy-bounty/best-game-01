@@ -8,6 +8,7 @@ import { makeEnemy, makeBullet, burst, floatText, makePickup } from './entities.
 function placeWisp(state, type, x, y) {
   const e = makeEnemy(type, x, y, state.night);
   e.phase = state.rng.next() * Math.PI * 2;
+  e.spawnIn = 0;
   state.enemies.push(e);
   return e;
 }
@@ -20,12 +21,8 @@ export function applyShot(state, scene) {
   if (scene === 'title') {
     state.phase = 'title';
     state.best = 12500;
-    placeWisp(state, 'wisp', 150, 420);
-    placeWisp(state, 'wisp', 830, 130);
-    placeWisp(state, 'swift', 760, 450);
-    state.player.x = 150;
-    state.player.y = 480;
-    state.player.angle = -Math.PI / 3;
+    // The world rests behind the title panel: arena + ember only, so no
+    // stray wisp or player sprite peeks out from under it.
     return;
   }
 
@@ -50,15 +47,19 @@ export function applyShot(state, scene) {
     placeWisp(state, 'wisp', 180, 260);
     placeWisp(state, 'spitter', 850, 430);
     placeWisp(state, 'wisp', 420, 90);
-    for (let i = 0; i < 5; i++) {
-      const a = -0.5 + (i - 2) * 0.1;
+    placeWisp(state, 'swift', 880, 300);
+    placeWisp(state, 'wisp', 250, 460);
+    for (let i = 0; i < 7; i++) {
+      const a = -0.5 + (i - 3) * 0.1;
       state.bullets.push(makeBullet(360 + i * 26, 372 - i * 8, a, 580, true, 1));
     }
     burst(state, 620, 180, '#8b7bff', 14, 160, 0.6);
     burst(state, 700, 330, '#ff7ad9', 10, 140, 0.5);
+    burst(state, 780, 220, '#7fb2ff', 12, 150, 0.5);
     floatText(state, 620, 150, '+100', '#ffd166', 16);
     floatText(state, 700, 300, '+150', '#ffd166', 16);
     makePickup(state, 540, 430, 'spark');
+    makePickup(state, 420, 320, 'shard');
     return;
   }
 
@@ -77,11 +78,13 @@ export function applyShot(state, scene) {
     state.player.dashCooldown = 0;
     const herald = placeWisp(state, 'herald', 640, 240);
     herald.hp = 62;
-    placeWisp(state, 'wisp', 720, 150);
+    placeWisp(state, 'wisp', 870, 130);
     placeWisp(state, 'wisp', 580, 340);
     placeWisp(state, 'swift', 760, 330);
     placeWisp(state, 'brute', 520, 130);
     placeWisp(state, 'spitter', 840, 200);
+    placeWisp(state, 'brute', 840, 380);
+    placeWisp(state, 'swift', 430, 110);
     for (let i = 0; i < 7; i++) {
       const a = -0.35 + (i - 3) * 0.09;
       state.bullets.push(makeBullet(330 + i * 22, 420 - i * 6, a, 580, true, 1));
@@ -91,8 +94,11 @@ export function applyShot(state, scene) {
     }
     burst(state, 640, 240, '#ffd166', 22, 200, 0.7);
     burst(state, 520, 130, '#7fb2ff', 12, 150, 0.5);
+    burst(state, 840, 380, '#7fb2ff', 12, 150, 0.5);
     floatText(state, 770, 150, '+300', '#ffd166', 18);
+    floatText(state, 580, 380, '+150', '#ffd166', 16);
     makePickup(state, 420, 470, 'surge');
+    makePickup(state, 700, 430, 'shard');
     return;
   }
 
@@ -104,8 +110,7 @@ export function applyShot(state, scene) {
     state.best = 24750;
     state.endStats = { score: 24750, kills: 214, nights: 7, time: 582, best: 24750 };
     state.heartHp = 64;
-    state.player.x = 150;
-    state.player.y = 480;
+    // The world rests behind the victory panel: bursts only.
     burst(state, 480, 270, '#ffd166', 40, 260, 0.9);
     burst(state, 380, 320, '#7ef0d4', 24, 200, 0.8);
     burst(state, 580, 320, '#ff9f43', 24, 200, 0.8);

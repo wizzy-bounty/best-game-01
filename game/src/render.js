@@ -1,46 +1,10 @@
-// Every pixel of EMBERPRISM: the night arena, the Ember Heart, the wisp,
-// the HUD and the title / pause / victory / game-over screens.
-// Canvas is 960x540 logical; the page scales it with CSS.
-import { VIEW_W, VIEW_H, HEART, PALETTE, ENEMY_TYPES, PICKUPS, WAVES_PER_NIGHT } from './config.js';
-import { enemiesLeft } from './waves.js';
-
-const FONT = "'Trebuchet MS', Verdana, sans-serif";
-
-function rr(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
-}
-
-function panel(ctx, x, y, w, h) {
-  ctx.fillStyle = PALETTE.panel;
-  rr(ctx, x, y, w, h, 8);
-  ctx.fill();
-  ctx.strokeStyle = PALETTE.panelEdge;
-  ctx.lineWidth = 1;
-  ctx.stroke();
-}
-
-function glowCircle(ctx, x, y, r, color, alpha) {
-  const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-  g.addColorStop(0, color);
-  g.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.globalAlpha = alpha;
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.globalAlpha = 1;
-}
-
-// Scores and bests are always shown with thousands separators.
-function fmtScore(n) {
-  return Math.floor(n).toLocaleString('en-US');
-}
+// Every pixel of EMBERPRISM's world: the night arena, the Ember Heart, the
+// wisps, the player, bolts, pickups and particles. Canvas is 960x540
+// logical; the page scales it with CSS. HUD and screens live in hud.js;
+// shared primitives (panels, glows, score formatting) in canvas.js.
+import { VIEW_W, VIEW_H, HEART, PALETTE, ENEMY_TYPES, PICKUPS } from './config.js';
+import { FONT, glowCircle } from './canvas.js';
+import { drawHud, drawTitle, drawPause, drawEndScreen } from './hud.js';
 
 export function drawBackground(ctx, state) {
   const g = ctx.createLinearGradient(0, 0, 0, VIEW_H);
@@ -58,20 +22,32 @@ export function drawBackground(ctx, state) {
   }
   ctx.globalAlpha = 1;
 
-  // Warm floor glow around the heart, fading into the dark fog.
-  const floor = ctx.createRadialGradient(HEART.x, HEART.y, 20, HEART.x, HEART.y, 420);
-  floor.addColorStop(0, 'rgba(122, 84, 32, 0.55)');
-  floor.addColorStop(0.5, 'rgba(58, 40, 26, 0.35)');
-  floor.addColorStop(1, 'rgba(13, 10, 36, 0)');
+  // Warm floor glow around the heart, fading into the dusk.
+  const floor = ctx.createRadialGradient(HEART.x, HEART.y, 20, HEART.x, HEART.y, 460);
+  floor.addColorStop(0, 'rgba(150, 104, 40, 0.75)');
+  floor.addColorStop(0.5, 'rgba(84, 58, 36, 0.5)');
+  floor.addColorStop(1, 'rgba(26, 20, 64, 0)');
   ctx.fillStyle = floor;
   ctx.fillRect(0, 0, VIEW_W, VIEW_H);
 
-  // Drifting fog banks, darker than the floor so the light reads.
+  // Glowing ember motes scattered over the arena floor, so the ground
+  // reads as a place and not an empty void.
+  for (const m of state.motes) {
+    const tw = 0.5 + 0.5 * Math.sin(state.time * m.tw + m.ph);
+    ctx.globalAlpha = tw * m.a;
+    ctx.fillStyle = '#ffb347';
+    ctx.beginPath();
+    ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // Drifting fog banks, misty lavender now so the light reads against them.
   ctx.save();
   for (const f of state.fog) {
     const fx = ((f.x + state.time * f.speed) % (VIEW_W + 320)) - 160;
     ctx.globalAlpha = f.a;
-    ctx.fillStyle = '#1b1445';
+    ctx.fillStyle = '#3a2f7d';
     ctx.beginPath();
     ctx.ellipse(fx, f.y, f.rx, f.ry, 0, 0, Math.PI * 2);
     ctx.fill();
@@ -79,15 +55,23 @@ export function drawBackground(ctx, state) {
   ctx.restore();
 
   // Arena rings around the heart: the line the wisps must not cross.
-  ctx.strokeStyle = 'rgba(255, 209, 102, 0.16)';
+  // Faint rune ticks mark the ring so the boundary reads at a glance.
+  ctx.strokeStyle = 'rgba(255, 209, 102, 0.22)';
   ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.arc(HEART.x, HEART.y, 120, 0, Math.PI * 2);
   ctx.stroke();
-  ctx.strokeStyle = 'rgba(255, 209, 102, 0.08)';
+  ctx.strokeStyle = 'rgba(255, 209, 102, 0.12)';
   ctx.beginPath();
   ctx.arc(HEART.x, HEART.y, 200, 0, Math.PI * 2);
   ctx.stroke();
+  ctx.fillStyle = 'rgba(255, 209, 102, 0.35)';
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.arc(HEART.x + Math.cos(a) * 120, HEART.y + Math.sin(a) * 120, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 function drawHeart(ctx, state) {
@@ -139,21 +123,21 @@ function drawPlayer(ctx, state) {
     ctx.globalAlpha = (1 - i / p.trail.length) * 0.25;
     ctx.fillStyle = '#7ef0d4';
     ctx.beginPath();
-    ctx.arc(t.x, t.y, 8 * (1 - i / p.trail.length), 0, Math.PI * 2);
+    ctx.arc(t.x, t.y, 10 * (1 - i / p.trail.length), 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.globalAlpha = 1;
 
-  // Aim guide: a faint beam toward the mouse.
-  ctx.strokeStyle = 'rgba(126, 240, 212, 0.28)';
-  ctx.lineWidth = 2;
+  // Aim guide: a bright beam toward the mouse so the aim reads at once.
+  ctx.strokeStyle = 'rgba(126, 240, 212, 0.45)';
+  ctx.lineWidth = 2.5;
   ctx.beginPath();
   ctx.moveTo(p.x, p.y);
-  ctx.lineTo(p.x + Math.cos(p.angle) * 46, p.y + Math.sin(p.angle) * 46);
+  ctx.lineTo(p.x + Math.cos(p.angle) * 72, p.y + Math.sin(p.angle) * 72);
   ctx.stroke();
 
   ctx.globalCompositeOperation = 'lighter';
-  glowCircle(ctx, p.x, p.y, 34, 'rgba(126, 240, 212, 0.5)', 0.8);
+  glowCircle(ctx, p.x, p.y, 44, 'rgba(126, 240, 212, 0.55)', 0.85);
   ctx.restore();
 
   // The prism wisp: a bright diamond with a light core.
@@ -162,18 +146,18 @@ function drawPlayer(ctx, state) {
   ctx.rotate(p.angle);
   ctx.fillStyle = PALETTE.playerBody;
   ctx.beginPath();
-  ctx.moveTo(16, 0);
-  ctx.lineTo(-8, 9);
-  ctx.lineTo(-4, 0);
-  ctx.lineTo(-8, -9);
+  ctx.moveTo(21, 0);
+  ctx.lineTo(-11, 12);
+  ctx.lineTo(-5, 0);
+  ctx.lineTo(-11, -12);
   ctx.closePath();
   ctx.fill();
   ctx.strokeStyle = PALETTE.playerRim;
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 2.5;
   ctx.stroke();
   ctx.fillStyle = '#ffd166';
   ctx.beginPath();
-  ctx.arc(2, 0, 3.5, 0, Math.PI * 2);
+  ctx.arc(3, 0, 4.5, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 
@@ -182,23 +166,23 @@ function drawPlayer(ctx, state) {
     ctx.strokeStyle = '#7ef0d4';
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, 20, -Math.PI / 2, -Math.PI / 2 + (p.surge / 8) * Math.PI * 2);
+    ctx.arc(p.x, p.y, 26, -Math.PI / 2, -Math.PI / 2 + (p.surge / 8) * Math.PI * 2);
     ctx.stroke();
   }
 
   // Player hearts (lives).
   for (let i = 0; i < 3; i++) {
     ctx.fillStyle = i < p.hp ? '#ff6b81' : 'rgba(255,255,255,0.18)';
-    const hx = p.x - 14 + i * 14;
-    const hy = p.y - 30;
+    const hx = p.x - 17 + i * 17;
+    const hy = p.y - 36;
     ctx.beginPath();
-    ctx.arc(hx - 3, hy, 4, 0, Math.PI * 2);
-    ctx.arc(hx + 3, hy, 4, 0, Math.PI * 2);
+    ctx.arc(hx - 3.5, hy, 4.5, 0, Math.PI * 2);
+    ctx.arc(hx + 3.5, hy, 4.5, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
-    ctx.moveTo(hx - 6.5, hy + 1);
-    ctx.lineTo(hx, hy + 8);
-    ctx.lineTo(hx + 6.5, hy + 1);
+    ctx.moveTo(hx - 7.5, hy + 1);
+    ctx.lineTo(hx, hy + 9);
+    ctx.lineTo(hx + 7.5, hy + 1);
     ctx.fill();
   }
 }
@@ -206,12 +190,27 @@ function drawPlayer(ctx, state) {
 function drawEnemies(ctx, state) {
   for (const e of state.enemies) {
     const def = ENEMY_TYPES[e.type];
+
+    // Spawn telegraph: a closing portal ring while the wisp materialises.
+    if (e.spawnIn > 0) {
+      const f = e.spawnIn / 0.45;
+      ctx.save();
+      ctx.globalAlpha = 0.25 + 0.55 * f;
+      ctx.strokeStyle = def.rim;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, e.r * (1.6 + f * 0.9), 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    glowCircle(ctx, e.x, e.y, e.r * 2.1, def.glow, 0.55);
+    glowCircle(ctx, e.x, e.y, e.r * 2.1, def.glow, 0.65);
     ctx.restore();
 
-    // Shadow body: a dark blob with a coloured rim light.
+    // Shadow body: a bright-rimmed blob, no longer near-black, so every
+    // foe reads at thumbnail size.
     ctx.save();
     ctx.translate(e.x, e.y);
     const wob = Math.sin(e.phase * 3) * 0.12;
@@ -228,10 +227,10 @@ function drawEnemies(ctx, state) {
     ctx.fillStyle = e.flash > 0 ? '#ffffff' : def.body;
     ctx.fill();
     ctx.strokeStyle = e.elite ? '#ffd166' : def.rim;
-    ctx.lineWidth = e.elite ? 3 : 2;
+    ctx.lineWidth = e.elite ? 3.5 : 2.5;
     ctx.stroke();
 
-    // Eyes, always looking at the heart.
+    // Eyes, always looking at the heart — bigger now, the face of the foe.
     const look = Math.atan2(HEART.y - e.y, HEART.x - e.x);
     const ex = Math.cos(look) * e.r * 0.3;
     const ey = Math.sin(look) * e.r * 0.3;
@@ -239,22 +238,39 @@ function drawEnemies(ctx, state) {
     for (const s of [-1, 1]) {
       ctx.fillStyle = def.eye;
       ctx.beginPath();
-      ctx.arc(ex + Math.cos(perp) * e.r * 0.32 * s, ey + Math.sin(perp) * e.r * 0.32 * s, Math.max(2, e.r * 0.14), 0, Math.PI * 2);
+      ctx.arc(ex + Math.cos(perp) * e.r * 0.32 * s, ey + Math.sin(perp) * e.r * 0.32 * s, Math.max(2.5, e.r * 0.18), 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.restore();
 
-    // Boss crown + health bar for the Herald.
+    // Boss crown, name and health bar for the Herald.
     if (e.type === 'herald') {
+      ctx.save();
+      ctx.globalAlpha = 0.7 + 0.3 * Math.sin(state.time * 4);
+      ctx.strokeStyle = 'rgba(255, 209, 102, 0.55)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, e.r + 10, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
       ctx.fillStyle = '#ffd166';
-      ctx.font = `bold 15px ${FONT}`;
+      ctx.beginPath();
+      for (const s of [-1, 0, 1]) {
+        const cx = e.x + s * 16;
+        ctx.moveTo(cx - 7, e.y - e.r - 6);
+        ctx.lineTo(cx, e.y - e.r - 22);
+        ctx.lineTo(cx + 7, e.y - e.r - 6);
+      }
+      ctx.fill();
+      ctx.fillStyle = '#ffd166';
+      ctx.font = `bold 19px ${FONT}`;
       ctx.textAlign = 'center';
-      ctx.fillText('THE NIGHT HERALD', e.x, e.y - e.r - 22);
-      const bw = 120;
+      ctx.fillText('THE NIGHT HERALD', e.x, e.y - e.r - 52);
+      const bw = 150;
       ctx.fillStyle = 'rgba(0,0,0,0.5)';
-      ctx.fillRect(e.x - bw / 2, e.y - e.r - 16, bw, 7);
+      ctx.fillRect(e.x - bw / 2, e.y - e.r - 46, bw, 9);
       ctx.fillStyle = '#ffd166';
-      ctx.fillRect(e.x - bw / 2, e.y - e.r - 16, bw * (e.hp / e.maxHp), 7);
+      ctx.fillRect(e.x - bw / 2, e.y - e.r - 46, bw * (e.hp / e.maxHp), 9);
     } else if (e.hp < e.maxHp) {
       const bw = e.r * 1.6;
       ctx.fillStyle = 'rgba(0,0,0,0.55)';
@@ -269,17 +285,17 @@ function drawBullets(ctx, state) {
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   for (const b of state.bullets) {
-    glowCircle(ctx, b.x, b.y, 14, 'rgba(255, 233, 168, 0.8)', 0.9);
+    glowCircle(ctx, b.x, b.y, 15, 'rgba(255, 233, 168, 0.85)', 0.9);
     ctx.fillStyle = '#fff6d8';
     ctx.beginPath();
-    ctx.arc(b.x, b.y, 4, 0, Math.PI * 2);
+    ctx.arc(b.x, b.y, 4.5, 0, Math.PI * 2);
     ctx.fill();
   }
   for (const b of state.ebullets) {
-    glowCircle(ctx, b.x, b.y, 15, 'rgba(168, 85, 247, 0.7)', 0.85);
+    glowCircle(ctx, b.x, b.y, 16, 'rgba(168, 85, 247, 0.75)', 0.85);
     ctx.fillStyle = '#d8b4fe';
     ctx.beginPath();
-    ctx.arc(b.x, b.y, 5, 0, Math.PI * 2);
+    ctx.arc(b.x, b.y, 5.5, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.restore();
@@ -293,7 +309,7 @@ function drawPickups(ctx, state) {
     if (blink) continue;
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    glowCircle(ctx, pk.x, pk.y + bobY, 26, def.color, 0.5);
+    glowCircle(ctx, pk.x, pk.y + bobY, 30, def.color, 0.55);
     ctx.restore();
     ctx.save();
     ctx.translate(pk.x, pk.y + bobY);
@@ -302,23 +318,23 @@ function drawPickups(ctx, state) {
     ctx.lineWidth = 1.5;
     if (pk.kind === 'shard') {
       ctx.rotate(Math.PI / 4);
-      ctx.fillRect(-7, -7, 14, 14);
-      ctx.strokeRect(-7, -7, 14, 14);
+      ctx.fillRect(-8, -8, 16, 16);
+      ctx.strokeRect(-8, -8, 16, 16);
     } else if (pk.kind === 'spark') {
       ctx.beginPath();
-      ctx.arc(-3.5, -2, 4.5, 0, Math.PI * 2);
-      ctx.arc(3.5, -2, 4.5, 0, Math.PI * 2);
+      ctx.arc(-4, -2, 5, 0, Math.PI * 2);
+      ctx.arc(4, -2, 5, 0, Math.PI * 2);
       ctx.fill();
       ctx.beginPath();
-      ctx.moveTo(-8, 0);
-      ctx.lineTo(0, 9);
-      ctx.lineTo(8, 0);
+      ctx.moveTo(-9, 0);
+      ctx.lineTo(0, 10);
+      ctx.lineTo(9, 0);
       ctx.fill();
     } else {
       ctx.beginPath();
-      ctx.moveTo(0, -10);
-      ctx.lineTo(9, 7);
-      ctx.lineTo(-9, 7);
+      ctx.moveTo(0, -11);
+      ctx.lineTo(10, 8);
+      ctx.lineTo(-10, 8);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
@@ -352,189 +368,6 @@ function drawFloats(ctx, state) {
   ctx.globalAlpha = 1;
 }
 
-function drawHud(ctx, state) {
-  // Top bar: night, wave, score, combo, heart, dash, foes left.
-  panel(ctx, 12, 10, 936, 46);
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = PALETTE.text;
-  ctx.font = `bold 17px ${FONT}`;
-  ctx.fillText(`NIGHT ${state.night}/${7}`, 26, 34);
-  ctx.font = `15px ${FONT}`;
-  ctx.fillStyle = PALETTE.dimText;
-  ctx.fillText(`WAVE ${Math.min(state.waveIndex + 1, WAVES_PER_NIGHT)}/${WAVES_PER_NIGHT}`, 150, 34);
-
-  ctx.textAlign = 'center';
-  ctx.fillStyle = PALETTE.text;
-  ctx.font = `bold 20px ${FONT}`;
-  ctx.fillText(`SCORE ${fmtScore(state.score)}`, 480, 30);
-  if (state.combo > 1) {
-    ctx.fillStyle = '#ffd166';
-    ctx.font = `bold 14px ${FONT}`;
-    ctx.fillText(`COMBO x${state.combo}`, 480, 48);
-  }
-
-  // Heart HP bar, right side.
-  const bx = 650;
-  const bw = 120;
-  ctx.textAlign = 'left';
-  ctx.fillStyle = PALETTE.dimText;
-  ctx.font = `bold 12px ${FONT}`;
-  ctx.fillText('EMBER', bx, 22);
-  ctx.fillStyle = 'rgba(255,255,255,0.15)';
-  rr(ctx, bx, 28, bw, 12, 6);
-  ctx.fill();
-  const frac = Math.max(0, state.heartHp / 100);
-  ctx.fillStyle = frac > 0.35 ? '#ffd166' : '#ff5a5a';
-  if (frac > 0) {
-    rr(ctx, bx, 28, bw * frac, 12, 6);
-    ctx.fill();
-  }
-  ctx.fillStyle = PALETTE.text;
-  ctx.font = `bold 12px ${FONT}`;
-  ctx.fillText(`${Math.ceil(state.heartHp)}`, bx + bw + 6, 34);
-
-  // Dash pip + foes left.
-  ctx.fillStyle = state.player.dashCooldown <= 0 ? '#7ef0d4' : 'rgba(255,255,255,0.25)';
-  ctx.font = `bold 12px ${FONT}`;
-  ctx.fillText(state.player.dashCooldown <= 0 ? 'DASH READY' : 'DASH…', 858, 22);
-  ctx.fillStyle = PALETTE.dimText;
-  ctx.fillText(`FOES ${enemiesLeft(state)}`, 858, 40);
-
-  // Best score, bottom-left corner.
-  ctx.textAlign = 'left';
-  ctx.fillStyle = 'rgba(244,241,255,0.55)';
-  ctx.font = `13px ${FONT}`;
-  ctx.fillText(`BEST ${fmtScore(Math.max(state.best, state.score))}`, 16, 528);
-
-  // Controls hint, bottom-right, fades after the first night.
-  if (state.night === 1 && state.waveIndex === 0) {
-    ctx.textAlign = 'right';
-    ctx.fillStyle = 'rgba(244,241,255,0.55)';
-    ctx.fillText('WASD move · MOUSE aim · HOLD CLICK fire · SHIFT dash · P pause · M mute', 944, 528);
-  }
-
-  // Wave / night banner.
-  if (state.banner && state.banner.timer > 0) {
-    const a = Math.min(1, state.banner.timer);
-    ctx.globalAlpha = a;
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#ffd166';
-    ctx.font = `bold 34px ${FONT}`;
-    ctx.fillText(state.banner.text, 480, 150);
-    if (state.banner.sub) {
-      ctx.fillStyle = PALETTE.text;
-      ctx.font = `18px ${FONT}`;
-      ctx.fillText(state.banner.sub, 480, 182);
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  // Prism Surge active notice.
-  if (state.player.surge > 0) {
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#7ef0d4';
-    ctx.font = `bold 15px ${FONT}`;
-    ctx.fillText(`PRISM SURGE ${state.player.surge.toFixed(0)}s — triple light!`, 480, 78);
-  }
-  ctx.textBaseline = 'alphabetic';
-}
-
-function drawTitle(ctx, state) {
-  ctx.fillStyle = 'rgba(6, 8, 26, 0.55)';
-  ctx.fillRect(0, 0, VIEW_W, VIEW_H);
-  ctx.textAlign = 'center';
-  ctx.save();
-  ctx.shadowColor = '#ffd166';
-  ctx.shadowBlur = 34;
-  ctx.fillStyle = '#ffe9a8';
-  ctx.font = `bold 64px ${FONT}`;
-  ctx.fillText('EMBERPRISM', 480, 128);
-  ctx.restore();
-  ctx.fillStyle = '#7ef0d4';
-  ctx.font = `bold 20px ${FONT}`;
-  ctx.fillText('GUARD THE LAST EMBER THROUGH SEVEN NIGHTS', 480, 162);
-
-  panel(ctx, 230, 196, 500, 168);
-  ctx.fillStyle = PALETTE.text;
-  ctx.font = `17px ${FONT}`;
-  const lines = [
-    'Shadow wisps crawl out of the fog to snuff the Ember Heart.',
-    'You are the last Prism Wisp. Burn them with light before',
-    'they reach the flame. Survive all seven nights to win.',
-    '',
-    'WASD / ARROWS — move      MOUSE — aim',
-    'HOLD CLICK — fire light      SHIFT — dash',
-    'P — pause      M — mute',
-  ];
-  lines.forEach((line, i) => ctx.fillText(line, 480, 226 + i * 22));
-
-  if (state.best > 0) {
-    ctx.fillStyle = '#ffd166';
-    ctx.font = `bold 18px ${FONT}`;
-    ctx.fillText(`BEST SCORE  ${fmtScore(state.best)}`, 480, 396);
-  }
-  const pulse = 0.6 + 0.4 * Math.sin(state.time * 3);
-  ctx.globalAlpha = pulse;
-  ctx.fillStyle = '#ffffff';
-  ctx.font = `bold 22px ${FONT}`;
-  ctx.fillText('CLICK OR PRESS ENTER TO BEGIN', 480, 436);
-  ctx.globalAlpha = 1;
-}
-
-function drawPause(ctx) {
-  ctx.fillStyle = 'rgba(6, 8, 26, 0.6)';
-  ctx.fillRect(0, 0, VIEW_W, VIEW_H);
-  ctx.textAlign = 'center';
-  ctx.fillStyle = PALETTE.text;
-  ctx.font = `bold 44px ${FONT}`;
-  ctx.fillText('PAUSED', 480, 250);
-  ctx.font = `18px ${FONT}`;
-  ctx.fillStyle = PALETTE.dimText;
-  ctx.fillText('Press P or click to resume', 480, 292);
-}
-
-function drawEndScreen(ctx, state, won) {
-  ctx.fillStyle = won ? 'rgba(20, 26, 8, 0.62)' : 'rgba(26, 6, 12, 0.62)';
-  ctx.fillRect(0, 0, VIEW_W, VIEW_H);
-  ctx.textAlign = 'center';
-  ctx.save();
-  ctx.shadowColor = won ? '#ffd166' : '#ff5a5a';
-  ctx.shadowBlur = 30;
-  ctx.fillStyle = won ? '#ffe9a8' : '#ffb3b3';
-  ctx.font = `bold 52px ${FONT}`;
-  ctx.fillText(won ? 'DAWN BREAKS — YOU WIN!' : 'THE EMBER DIES…', 480, 130);
-  ctx.restore();
-  ctx.fillStyle = PALETTE.text;
-  ctx.font = `19px ${FONT}`;
-  ctx.fillText(
-    won ? 'Seven nights held. The fog lifts, and the light remains.' : 'The last ember is gone, and the fog takes the field.',
-    480, 166,
-  );
-
-  const s = state.endStats || { score: state.score, kills: state.kills, nights: state.night, time: state.time, best: state.best };
-  panel(ctx, 300, 200, 360, 176);
-  ctx.font = `bold 22px ${FONT}`;
-  ctx.fillStyle = '#ffd166';
-  ctx.fillText(`SCORE  ${fmtScore(s.score)}`, 480, 238);
-  ctx.font = `17px ${FONT}`;
-  ctx.fillStyle = PALETTE.text;
-  ctx.fillText(`Wisps banished  ${s.kills}`, 480, 272);
-  ctx.fillText(`Nights held  ${Math.min(s.nights, 7)} / 7`, 480, 298);
-  const mins = Math.floor(s.time / 60);
-  const secs = Math.floor(s.time % 60);
-  ctx.fillText(`Time  ${mins}:${String(secs).padStart(2, '0')}`, 480, 324);
-  ctx.fillStyle = s.score >= s.best && s.score > 0 ? '#7ef0d4' : PALETTE.dimText;
-  ctx.fillText(s.score >= s.best && s.score > 0 ? '★ NEW BEST SCORE ★' : `Best  ${fmtScore(s.best)}`, 480, 352);
-
-  const pulse = 0.6 + 0.4 * Math.sin(state.time * 3);
-  ctx.globalAlpha = pulse;
-  ctx.fillStyle = '#ffffff';
-  ctx.font = `bold 21px ${FONT}`;
-  ctx.fillText('PRESS R OR CLICK TO PLAY AGAIN', 480, 424);
-  ctx.globalAlpha = 1;
-}
-
 export function drawGame(ctx, state) {
   ctx.save();
   if (state.shake > 0) {
@@ -543,10 +376,16 @@ export function drawGame(ctx, state) {
   }
   drawBackground(ctx, state);
   drawHeart(ctx, state);
-  drawPickups(ctx, state);
-  drawEnemies(ctx, state);
-  drawPlayer(ctx, state);
-  drawBullets(ctx, state);
+  // On the title / victory / game-over screens the world rests: only the
+  // arena and the ember show behind the panel, so no stray wisp or player
+  // sprite peeks out from under it.
+  const inWorld = state.phase === 'playing' || state.phase === 'paused';
+  if (inWorld) {
+    drawPickups(ctx, state);
+    drawEnemies(ctx, state);
+    drawPlayer(ctx, state);
+    drawBullets(ctx, state);
+  }
   drawParticles(ctx, state);
   drawFloats(ctx, state);
   ctx.restore();

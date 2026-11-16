@@ -34,6 +34,12 @@ export function createState(seed) {
   for (let i = 0; i < 6; i++) {
     fog.push({ x: rng.range(0, VIEW_W), y: rng.range(40, VIEW_H - 40), rx: rng.range(120, 220), ry: rng.range(26, 54), speed: rng.range(4, 12), a: rng.range(0.16, 0.3) });
   }
+  // Ember motes: faint glowing dots on the arena floor, seeded like the
+  // stars so every render of the same seed matches.
+  const motes = [];
+  for (let i = 0; i < 42; i++) {
+    motes.push({ x: rng.range(20, VIEW_W - 20), y: rng.range(70, VIEW_H - 20), r: rng.range(1, 2.2), a: rng.range(0.25, 0.7), tw: rng.range(0.6, 1.8), ph: rng.range(0, Math.PI * 2) });
+  }
   return {
     rng,
     seed,
@@ -60,6 +66,7 @@ export function createState(seed) {
     pickups: [],
     stars,
     fog,
+    motes,
     banner: null,
     shake: 0,
     endStats: null,

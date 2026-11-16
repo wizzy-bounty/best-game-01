@@ -47,6 +47,8 @@ export function makeEnemy(type, x, y, night) {
     wobble: 14 + Math.random() * 22,
     shootTimer: 1.5 + Math.random(),
     spawnTimer: 0,
+    // Spawn-in telegraph: the wisp materialises over 0.45 s, ring first.
+    spawnIn: 0.45,
     flash: 0,
     knockX: 0,
     knockY: 0,
@@ -174,6 +176,11 @@ export function updateEnemies(state, dt) {
   for (const e of state.enemies) {
     e.flash = Math.max(0, e.flash - dt);
     e.phase += dt;
+    // Still materialising: hold at the edge, ring closing, then hunt.
+    if (e.spawnIn > 0) {
+      e.spawnIn = Math.max(0, e.spawnIn - dt);
+      continue;
+    }
     const dx = heart.x - e.x;
     const dy = heart.y - e.y;
     const dist = Math.hypot(dx, dy) || 1;

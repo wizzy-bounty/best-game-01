@@ -7,7 +7,7 @@ export const VIEW_H = 540;
 export const HEART = { x: VIEW_W / 2, y: VIEW_H / 2, r: 34, maxHp: 100 };
 
 export const PLAYER = {
-  r: 13,
+  r: 16,
   speed: 255,
   fireInterval: 0.15,
   bulletSpeed: 580,
@@ -24,24 +24,24 @@ export const COMBO_WINDOW = 2.5;
 
 export const ENEMY_TYPES = {
   wisp: {
-    hp: 3, speed: 48, r: 14, score: 100, damage: 8,
-    body: '#241d4d', rim: '#8b7bff', eye: '#e9e4ff', glow: 'rgba(139,123,255,0.55)',
+    hp: 3, speed: 48, r: 18, score: 100, damage: 8,
+    body: '#453a8f', rim: '#a89bff', eye: '#ffffff', glow: 'rgba(139,123,255,0.7)',
   },
   swift: {
-    hp: 2, speed: 96, r: 11, score: 150, damage: 6,
-    body: '#3d1440', rim: '#ff7ad9', eye: '#ffe3f5', glow: 'rgba(255,122,217,0.55)',
+    hp: 2, speed: 96, r: 14, score: 150, damage: 6,
+    body: '#7a2f74', rim: '#ff8fe0', eye: '#fff0fa', glow: 'rgba(255,122,217,0.7)',
   },
   brute: {
-    hp: 13, speed: 27, r: 25, score: 300, damage: 18,
-    body: '#1c2438', rim: '#7fb2ff', eye: '#dbeafe', glow: 'rgba(127,178,255,0.55)',
+    hp: 13, speed: 27, r: 31, score: 300, damage: 18,
+    body: '#33456e', rim: '#93c0ff', eye: '#ffffff', glow: 'rgba(127,178,255,0.7)',
   },
   spitter: {
-    hp: 4, speed: 40, r: 15, score: 200, damage: 10, shoots: true, shootRange: 250, shootInterval: 2.4,
-    body: '#2b1a3d', rim: '#c084fc', eye: '#f3e8ff', glow: 'rgba(192,132,252,0.55)',
+    hp: 4, speed: 40, r: 19, score: 200, damage: 10, shoots: true, shootRange: 250, shootInterval: 2.4,
+    body: '#5a3678', rim: '#d0a2ff', eye: '#ffffff', glow: 'rgba(192,132,252,0.7)',
   },
   herald: {
-    hp: 95, speed: 19, r: 42, score: 2000, damage: 30, boss: true,
-    body: '#160f2e', rim: '#ffd166', eye: '#fff3c4', glow: 'rgba(255,209,102,0.6)',
+    hp: 95, speed: 19, r: 50, score: 2000, damage: 30, boss: true,
+    body: '#33255e', rim: '#ffd166', eye: '#fff3c4', glow: 'rgba(255,209,102,0.7)',
   },
 };
 
@@ -108,8 +108,8 @@ export const PICKUPS = {
 };
 
 export const PALETTE = {
-  skyTop: '#0a0e2a',
-  skyBottom: '#1a1440',
+  skyTop: '#232a5e',
+  skyBottom: '#3a2a68',
   floorCenter: '#4a3416',
   floorEdge: '#0d0a24',
   heartCore: '#ffd166',
@@ -119,7 +119,7 @@ export const PALETTE = {
   playerRim: '#7ef0d4',
   bullet: '#ffe9a8',
   text: '#f4f1ff',
-  dimText: '#b9b3d9',
-  panel: 'rgba(10, 12, 34, 0.72)',
-  panelEdge: 'rgba(126, 240, 212, 0.35)',
+  dimText: '#cfc9ec',
+  panel: 'rgba(12, 14, 40, 0.84)',
+  panelEdge: 'rgba(126, 240, 212, 0.45)',
 };
