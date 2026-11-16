@@ -147,6 +147,13 @@ export function drawPause(ctx) {
   ctx.fillText('Press P or click to resume', 480, 292);
 }
 
+// "m:ss" clock for the end-screen stats.
+function fmtDuration(t) {
+  const mins = Math.floor(t / 60);
+  const secs = Math.floor(t % 60);
+  return `${mins}:${String(secs).padStart(2, '0')}`;
+}
+
 export function drawEndScreen(ctx, state, won) {
   ctx.fillStyle = won ? 'rgba(20, 26, 8, 0.62)' : 'rgba(26, 6, 12, 0.62)';
   ctx.fillRect(0, 0, VIEW_W, VIEW_H);
@@ -174,9 +181,7 @@ export function drawEndScreen(ctx, state, won) {
   ctx.fillStyle = PALETTE.text;
   ctx.fillText(`Wisps banished  ${s.kills}`, 480, 272);
   ctx.fillText(`Nights held  ${Math.min(s.nights, 7)} / 7`, 480, 298);
-  const mins = Math.floor(s.time / 60);
-  const secs = Math.floor(s.time % 60);
-  ctx.fillText(`Time  ${mins}:${String(secs).padStart(2, '0')}`, 480, 324);
+  ctx.fillText(`Time  ${fmtDuration(s.time)}`, 480, 324);
   ctx.fillStyle = s.score >= s.best && s.score > 0 ? '#7ef0d4' : PALETTE.dimText;
   ctx.fillText(s.score >= s.best && s.score > 0 ? '★ NEW BEST SCORE ★' : `Best  ${fmtScore(s.best)}`, 480, 352);
 
