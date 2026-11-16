@@ -1,5 +1,11 @@
 # EMBERPRISM — Guard the Last Ember Through Seven Nights
 
+[![make.fun · best-game-01](https://make.fun/badge/best-game-01.svg)](https://make.fun/bounty/best-game-01?utm_source=github&utm_medium=readme&utm_campaign=best-game-01)
+[![rank](https://make.fun/badge/best-game-01/wizzy-bounty/best-game-01/rank.svg)](https://make.fun/bounty/best-game-01/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=best-game-01)
+[![reward](https://make.fun/badge/best-game-01/wizzy-bounty/best-game-01/reward.svg)](https://make.fun/bounty/best-game-01?utm_source=github&utm_medium=readme&utm_campaign=best-game-01)
+
+Entry for the [make.fun best-game-01 bounty](https://make.fun/bounty/best-game-01).
+
 A complete 2D canvas arcade game for make.fun's **best-game-01** bounty.
 You are the last Prism Wisp. Shadow wisps crawl out of the fog to snuff the
 Ember Heart at the centre of the arena — burn them with light before they
