@@ -1,5 +1,9 @@
-// A tiny seeded random generator (mulberry32) so shot scenes and tests
-// can replay the exact same layout, and the live game can seed from time.
+// PRISMBEND — a small seeded random number generator.
+//
+// The whole game runs on one seeded stream (mulberry32) so a screenshot
+// scene, a replay and a wave plan all come out the same way from the same
+// seed. Nothing in the game calls Math.random during play; Math.random is
+// only used once, at boot, to seed a live run from the clock.
 export function mulberry32(seed) {
   let a = seed >>> 0;
   return function next() {
@@ -11,34 +15,27 @@ export function mulberry32(seed) {
   };
 }
 
+// A tiny wrapper around the raw stream with the helpers the game uses.
 export function makeRng(seed) {
   const next = mulberry32(seed);
   return {
+    // A float in [0, 1).
     next,
+    // A float in [min, max).
     range(min, max) {
       return min + next() * (max - min);
     },
+    // An integer in [min, max] inclusive.
     int(min, max) {
-      return Math.floor(min + next() * (max - min + 1));
+      return min + Math.floor(next() * (max - min + 1));
     },
+    // One element of an array, uniformly.
     pick(list) {
       return list[Math.floor(next() * list.length)];
     },
+    // True with probability p.
     chance(p) {
       return next() < p;
     },
-    angle() {
-      return next() * Math.PI * 2;
-    },
   };
-}
-
-// A point on the arena's edge, just outside the view, for spawning.
-export function edgePoint(rng, margin = 24) {
-  const side = rng.int(0, 3);
-  const m = margin;
-  if (side === 0) return { x: rng.range(0, 960), y: -m };
-  if (side === 1) return { x: 960 + m, y: rng.range(0, 540) };
-  if (side === 2) return { x: rng.range(0, 960), y: 540 + m };
-  return { x: -m, y: rng.range(0, 540) };
 }
